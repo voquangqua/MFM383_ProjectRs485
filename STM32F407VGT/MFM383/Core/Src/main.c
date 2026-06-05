@@ -263,7 +263,6 @@ uint16_t crc16(uint8_t *buffer, uint16_t buffer_length)
     return (crc_hi << 8 | crc_lo);
 }
 
-
 void SetRS485Mode(RS485State state)
 {
 	switch (state)
@@ -290,17 +289,11 @@ void RS485SendData()
 	data[1]=0x04;
 	data[2]=0x00;
 	data[3]=0x00;
-//	data[4]=((0x02>>8)&0xFF);
-//	data[5]=((0x02)&0xFF);
 	data[4]=0x00;
-	// data[5]=0x02;
   data[5]=0x3C;
 	uint16_t tmp_crc=crc16(data,6);
 	data[6]=tmp_crc&0xFF;
 	data[7]=(tmp_crc>>8)&0xFF;
-
-
-
 
 	// SetRS485Mode(Transmiter);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, SET);
@@ -309,7 +302,6 @@ void RS485SendData()
   // đợi gửi xong hoàn toàn
   while (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_TC) == RESET);
 
-
 	// SetRS485Mode(Receiver);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
 
@@ -317,7 +309,6 @@ void RS485SendData()
   Ledstatus_Off(GPIO_PIN_9);
   Ledstatus_Off(GPIO_PIN_10);
 
-//  HAL_Delay(2);
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
