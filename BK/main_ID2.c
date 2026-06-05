@@ -151,35 +151,34 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
 
-UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 
-__IO ITStatus Uart1Ready = RESET;
 __IO ITStatus Uart2Ready = RESET;
 __IO ITStatus Uart3Ready = RESET;
 uint8_t aRxBuffer_uart2[1];
 uint8_t aRxBuffer_uart3[1];
-uint8_t rx_nfn383_ID2[255];
-uint8_t rx_nfn383_ID1[255];
-uint8_t rx_nfn383_ID1_Red[255];
+uint8_t rx_nfn383_ID2[512];
+uint8_t rx_nfn383_ID1[512];
 
 uint16_t  u8_len_rx_mfm383_ID2;
 uint16_t  u8_len_rx_mfm383_ID1;
-uint16_t  u8_len_rx_mfm383_ID1_Req;
 
 uint8_t  u8_timeout_uart2;
 uint8_t  u8_timeout_uart3;
 
+
+volatile uint8_t aTx_Buffer[64];
 volatile uint16_t dem_t =0;
 volatile uint16_t dem_t10 =0;
 volatile uint8_t SenFlag_Modbud_ID2 =0;
 volatile uint8_t SenFlag_Modbud_ID1 =0;
-volatile uint8_t SenFlag_Modbud_ID1_trans =0;
 
 MFM383A_Data_t g_meter[METER_MAX];
+
+float v_1n;
 
 
 typedef enum
@@ -196,7 +195,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
-static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -290,18 +288,18 @@ void SetRS485Mode(RS485State state)
 }
 void Ledstatus_On (uint16_t led_pin)
 {
-  HAL_GPIO_WritePin(GPIOD, led_pin, SET); 
+  HAL_GPIO_WritePin(GPIOD, led_pin, RESET); 
 }
 
 void Ledstatus_Off (uint16_t led_pin)
 {
-  HAL_GPIO_WritePin(GPIOD, led_pin, RESET); 
+  HAL_GPIO_WritePin(GPIOD, led_pin, SET); 
 }
 
-void RS485SendReqData_ID1()
+void RS485SendData_ID2()
 {
 	uint8_t data[8]={0};
-	data[0]=(uint8_t)MFM383A_ID_1;// slave ID
+	data[0]=(uint8_t)MFM383A_ID_2;// slave ID
 	data[1]=0x04;// Function code : 0x04 // read register
 	data[2]=0x00;
 	data[3]=0x00;
@@ -321,50 +319,60 @@ void RS485SendReqData_ID1()
 	// SetRS485Mode(Receiver);
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, RESET);
 
-  // Ledstatus_On(GPIO_PIN_11);
-  // Ledstatus_Off(GPIO_PIN_9);
-  // Ledstatus_Off(GPIO_PIN_10);
-
-}
-
-void RS485SendData_ID1()
-{
-
-	// SetRS485Mode(Transmiter);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, SET);
-	// UART1_TX(data, 8);
-  HAL_UART_Transmit(&huart3, rx_nfn383_ID1, (u8_len_rx_mfm383_ID1), 500);
-  // doi gui xong hoan toan
-  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET);
-
-	// SetRS485Mode(Receiver);
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
-
   Ledstatus_On(GPIO_PIN_11);
   Ledstatus_Off(GPIO_PIN_9);
   Ledstatus_Off(GPIO_PIN_10);
 
 }
 
+void RS485SendData_ID1()
+{
+	uint8_t data[8]={0};
+	data[0]=(uint8_t)MFM383A_ID_1;// slave ID
+	data[1]=0x04;// Function code : 0x04 // read register
+	data[2]=0x00;
+	data[3]=0x00;
+	data[4]=0x00;
+  data[5]=0x3C;// so byte can doc
+	uint16_t tmp_crc=crc16(data,6);
+	data[6]=tmp_crc&0xFF;
+	data[7]=(tmp_crc>>8)&0xFF;
+
+	// SetRS485Mode(Transmiter);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, SET);
+	// UART1_TX(data, 8);
+  HAL_UART_Transmit(&huart3, data, 8, 100);
+  // doi gui xong hoan toan
+  while (__HAL_UART_GET_FLAG(&huart3, UART_FLAG_TC) == RESET);
+
+	// SetRS485Mode(Receiver);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, RESET);
+
+  // Ledstatus_On(GPIO_PIN_11);
+  // Ledstatus_Off(GPIO_PIN_9);
+  // Ledstatus_Off(GPIO_PIN_10);
+
+}
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 if(htim->Instance == TIM2){
-	// dem_t = dem_t +1;
-	// if(dem_t>=20){
-	// 	dem_t10 = dem_t10+1;
-  //   if(dem_t10==4){
-  //     // dem_t10 = 0;
-  //     if(SenFlag_Modbud_ID2 == 0){
-  //       SenFlag_Modbud_ID2 = 1;
-  //     }
-  //   }
-  //   else if(dem_t10==8){
-  //           dem_t10 = 0;
-  //           if(SenFlag_Modbud_ID2 == 0){
-  //           SenFlag_Modbud_ID2 = 1;
-  //     }
-  //   }
-	// 	dem_t = 0;
-	// }
+	dem_t = dem_t +1;
+	if(dem_t>=20){
+		dem_t10 = dem_t10+1;
+    if(dem_t10==4){
+      // dem_t10 = 0;
+      if(SenFlag_Modbud_ID2 == 0){
+        SenFlag_Modbud_ID2 = 1;
+      }
+    }
+    else if(dem_t10==8){
+            dem_t10 = 0;
+            if(SenFlag_Modbud_ID1 == 0){
+            SenFlag_Modbud_ID1 = 1;
+      }
+    }
+		dem_t = 0;
+	}
 }
 }
 
@@ -402,18 +410,12 @@ int main(void)
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
 
   HAL_UART_Receive_IT(&huart2, aRxBuffer_uart2, 1);
 
   HAL_UART_Receive_IT(&huart3, aRxBuffer_uart3, 1);
-
-
-  Ledstatus_Off(GPIO_PIN_11);
-  Ledstatus_Off(GPIO_PIN_9);
-  Ledstatus_Off(GPIO_PIN_10);
 
 
   /* USER CODE END 2 */
@@ -425,21 +427,21 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	    if(SenFlag_Modbud_ID2==1){
+
+	      memset(rx_nfn383_ID2, 0, sizeof(rx_nfn383_ID2));
+	    	    // On Rx
+	      HAL_UART_Receive_IT(&huart2, aRxBuffer_uart2, 1);
+	      RS485SendData_ID2();
+	      SenFlag_Modbud_ID2 = 0;
+	    }
 	    if(SenFlag_Modbud_ID1==1){
 
 	      memset(rx_nfn383_ID1, 0, sizeof(rx_nfn383_ID1));
 	    	    // On Rx
-	      HAL_UART_Receive_IT(&huart2, aRxBuffer_uart2, 1);
-	      RS485SendReqData_ID1();
-	      SenFlag_Modbud_ID1 = 0;
-	    }
-	    if(SenFlag_Modbud_ID1_trans==1){
-
-	      memset(rx_nfn383_ID1_Red, 0, sizeof(rx_nfn383_ID1_Red));
-	    	    // On Rx
 	      HAL_UART_Receive_IT(&huart3, aRxBuffer_uart3, 1);
 	      RS485SendData_ID1();
-	      SenFlag_Modbud_ID1_trans = 0;
+	      SenFlag_Modbud_ID1 = 0;
 	    }
   }
   /* USER CODE END 3 */
@@ -532,39 +534,6 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
 
 }
 
@@ -701,6 +670,63 @@ float modbusPyloadToFloat(uint8_t *payload)
     return value;
 }
 
+void handle_data_uart_mfm3883_ID2(void)
+{
+    MFM383A_SlaveID_t slaveID2 = MFM383A_ID_2;
+    // MFM383A_SlaveID_t slaveID2 = MFM383A_ID_1;
+    
+    // uint8_t slaveID = rx_nfn383_ID2[0];
+
+    if(slaveID2 == 0 || slaveID2 > METER_MAX)
+        return;
+
+    MFM383A_Data_t *meter = &g_meter[slaveID2];
+
+    meter->V1N        = modbusPyloadToFloat(&rx_nfn383_ID2[3]);
+    meter->V2N        = modbusPyloadToFloat(&rx_nfn383_ID2[7]);
+    meter->V3N        = modbusPyloadToFloat(&rx_nfn383_ID2[11]);
+    meter->AvgVLN     = modbusPyloadToFloat(&rx_nfn383_ID2[15]);
+
+    meter->V12        = modbusPyloadToFloat(&rx_nfn383_ID2[19]);
+    meter->V23        = modbusPyloadToFloat(&rx_nfn383_ID2[23]);
+    meter->V31        = modbusPyloadToFloat(&rx_nfn383_ID2[27]);
+    meter->AvgVLL     = modbusPyloadToFloat(&rx_nfn383_ID2[31]);
+
+    meter->I1         = modbusPyloadToFloat(&rx_nfn383_ID2[35]);
+    meter->I2         = modbusPyloadToFloat(&rx_nfn383_ID2[39]);
+    meter->I3         = modbusPyloadToFloat(&rx_nfn383_ID2[43]);
+    meter->AvgCurrent = modbusPyloadToFloat(&rx_nfn383_ID2[47]);
+
+    meter->kW1        = modbusPyloadToFloat(&rx_nfn383_ID2[51]);
+    meter->kW2        = modbusPyloadToFloat(&rx_nfn383_ID2[55]);
+    meter->kW3        = modbusPyloadToFloat(&rx_nfn383_ID2[59]);
+
+    meter->kVA1       = modbusPyloadToFloat(&rx_nfn383_ID2[63]);
+    meter->kVA2       = modbusPyloadToFloat(&rx_nfn383_ID2[67]);
+    meter->kVA3       = modbusPyloadToFloat(&rx_nfn383_ID2[71]);
+
+    meter->kVAR1      = modbusPyloadToFloat(&rx_nfn383_ID2[75]);
+    meter->kVAR2      = modbusPyloadToFloat(&rx_nfn383_ID2[79]);
+    meter->kVAR3      = modbusPyloadToFloat(&rx_nfn383_ID2[83]);
+
+    meter->TotalkW    = modbusPyloadToFloat(&rx_nfn383_ID2[87]);
+    meter->TotalkVA   = modbusPyloadToFloat(&rx_nfn383_ID2[91]);
+    meter->TotalkVAR  = modbusPyloadToFloat(&rx_nfn383_ID2[95]);
+
+    meter->PF1        = modbusPyloadToFloat(&rx_nfn383_ID2[99]);
+    meter->PF2        = modbusPyloadToFloat(&rx_nfn383_ID2[103]);
+    meter->PF3        = modbusPyloadToFloat(&rx_nfn383_ID2[107]);
+    meter->AvgPF      = modbusPyloadToFloat(&rx_nfn383_ID2[111]);
+
+    meter->Frequency  = modbusPyloadToFloat(&rx_nfn383_ID2[115]);
+    meter->kWh        = modbusPyloadToFloat(&rx_nfn383_ID2[119]);
+
+  Ledstatus_On(GPIO_PIN_9);
+  Ledstatus_Off(GPIO_PIN_11);
+  Ledstatus_On(GPIO_PIN_10);
+}
+
+
 void handle_data_uart_mfm3883_ID1(void)
 {
     MFM383A_SlaveID_t slaveID1 = MFM383A_ID_1;
@@ -754,39 +780,21 @@ void handle_data_uart_mfm3883_ID1(void)
 
   // Ledstatus_On(GPIO_PIN_9);
   // Ledstatus_Off(GPIO_PIN_11);
-  // Ledstatus_Off(GPIO_PIN_10);
-  SenFlag_Modbud_ID1_trans = 1;
+  // Ledstatus_On(GPIO_PIN_10);
 }
-void CheckReq_mfm3883_ID1(void)
-{
-    MFM383A_SlaveID_t slaveID1 = MFM383A_ID_1;
-    if((rx_nfn383_ID1_Red[0]==slaveID1)&&(rx_nfn383_ID1_Red[1]==0x04)){
-      if(SenFlag_Modbud_ID1 == 0){
-        SenFlag_Modbud_ID1 = 1;
-      }
-      Ledstatus_Off(GPIO_PIN_10);
-      Ledstatus_On(GPIO_PIN_9);
-      Ledstatus_Off(GPIO_PIN_11);
 
-    }
-    else {
-      Ledstatus_On(GPIO_PIN_10);
-    }
-
-
-}
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART2)
     {
         if (u8_timeout_uart2 == 0)
         {
-            u8_len_rx_mfm383_ID1 = 0;
+            u8_len_rx_mfm383_ID2 = 0;
         }
 
-        rx_nfn383_ID1[u8_len_rx_mfm383_ID1++] = aRxBuffer_uart2[0];
+        rx_nfn383_ID2[u8_len_rx_mfm383_ID2++] = aRxBuffer_uart2[0];
 
-        u8_timeout_uart2 = 150;
+        u8_timeout_uart2 = 100;
 
         HAL_UART_Receive_IT(&huart2, aRxBuffer_uart2, 1);
     }
@@ -795,12 +803,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
     {
         if (u8_timeout_uart3 == 0)
         {
-            u8_len_rx_mfm383_ID1_Req = 0;
+            u8_len_rx_mfm383_ID1 = 0;
         }
 
-        rx_nfn383_ID1_Red[u8_len_rx_mfm383_ID1_Req++] = aRxBuffer_uart3[0];
+        rx_nfn383_ID1[u8_len_rx_mfm383_ID1++] = aRxBuffer_uart3[0];
 
-        u8_timeout_uart3 = 150;
+        u8_timeout_uart3 = 100;
 
         HAL_UART_Receive_IT(&huart3, aRxBuffer_uart3, 1);
     }
@@ -815,11 +823,11 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 1 */
   if((u8_timeout_uart2>0)&&(--u8_timeout_uart2==0))
   {
-	  handle_data_uart_mfm3883_ID1();
+	  handle_data_uart_mfm3883_ID2();
   }
   if((u8_timeout_uart3>0)&&(--u8_timeout_uart3==0))
   {
-	  CheckReq_mfm3883_ID1();
+	  handle_data_uart_mfm3883_ID1();
   }
   /* USER CODE END SysTick_IRQn 1 */
 }

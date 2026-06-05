@@ -151,13 +151,11 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim2;
 
-UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
 
-__IO ITStatus Uart1Ready = RESET;
 __IO ITStatus Uart2Ready = RESET;
 __IO ITStatus Uart3Ready = RESET;
 uint8_t aRxBuffer_uart2[1];
@@ -181,6 +179,8 @@ volatile uint8_t SenFlag_Modbud_ID1_trans =0;
 
 MFM383A_Data_t g_meter[METER_MAX];
 
+float v_1n;
+
 
 typedef enum
 {
@@ -196,7 +196,6 @@ static void MX_GPIO_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART3_UART_Init(void);
-static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -290,12 +289,12 @@ void SetRS485Mode(RS485State state)
 }
 void Ledstatus_On (uint16_t led_pin)
 {
-  HAL_GPIO_WritePin(GPIOD, led_pin, SET); 
+  HAL_GPIO_WritePin(GPIOD, led_pin, RESET); 
 }
 
 void Ledstatus_Off (uint16_t led_pin)
 {
-  HAL_GPIO_WritePin(GPIOD, led_pin, RESET); 
+  HAL_GPIO_WritePin(GPIOD, led_pin, SET); 
 }
 
 void RS485SendReqData_ID1()
@@ -402,7 +401,6 @@ int main(void)
   MX_TIM2_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
 
@@ -532,39 +530,6 @@ static void MX_TIM2_Init(void)
   /* USER CODE BEGIN TIM2_Init 2 */
 
   /* USER CODE END TIM2_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 9600;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
 
 }
 

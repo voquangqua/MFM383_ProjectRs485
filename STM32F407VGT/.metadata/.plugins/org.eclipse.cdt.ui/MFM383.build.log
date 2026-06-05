@@ -1,10 +1,10 @@
-07:30:45 **** Incremental Build of configuration Debug for project MFM383 ****
+03:48:59 **** Incremental Build of configuration Debug for project MFM383 ****
 make -j8 all 
 arm-none-eabi-size  MFM383.elf 
    text	   data	    bss	    dec	    hex	filename
-  15480	     12	  32844	  48336	   bcd0	MFM383.elf
+  16268	     12	  32988	  49268	   c074	MFM383.elf
 Finished building: default.size.stdout
  
 
-07:30:46 Build Finished. 0 errors, 0 warnings. (took 263ms)
+03:48:59 Build Finished. 0 errors, 0 warnings. (took 259ms)
 
