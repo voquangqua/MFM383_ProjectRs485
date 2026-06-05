@@ -1,0 +1,11 @@
+06:48:32 **** Incremental Build of configuration Debug for project STM32F407VET6_Modbus ****
+make -j8 all 
+arm-none-eabi-gcc -o "STM32F407VET6_Modbus.elf" @"objects.list"   -mcpu=cortex-m4 -T"D:\Project_2026\Modbud_MFM383A-C\STM32F407VET6\STM32F407VET6_Modbus\STM32F407VETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32F407VET6_Modbus.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/../../../../arm-none-eabi/bin/ld.exe: ./Core/Src/stm32f4xx_it.o: in function `SysTick_Handler':
+D:/Project_2026/Modbud_MFM383A-C/STM32F407VET6/STM32F407VET6_Modbus/Debug/../Core/Src/stm32f4xx_it.c:185: multiple definition of `SysTick_Handler'; ./Core/Src/main.o:D:/Project_2026/Modbud_MFM383A-C/STM32F407VET6/STM32F407VET6_Modbus/Debug/../Core/Src/main.c:586: first defined here
+collect2.exe: error: ld returned 1 exit status
+make: *** [makefile:64: STM32F407VET6_Modbus.elf] Error 1
+"make -j8 all" terminated with exit code 2. Build might be incomplete.
+
+06:48:33 Build Failed. 2 errors, 0 warnings. (took 823ms)
+
